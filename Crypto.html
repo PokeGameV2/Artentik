@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Artentik – OEuvres numériques certifiées</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         .watermark-overlay {
             position: absolute;
@@ -25,12 +26,27 @@
         .tab-active { border-bottom: 4px solid #6366f1; color: white; }
         .tab-inactive { border-bottom: 4px solid transparent; color: #94a3b8; }
         .no-select { user-select: none; -webkit-user-drag: none; }
+        .logo-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-300 font-sans min-h-screen p-6">
 
     <header class="max-w-7xl mx-auto mb-8 text-center">
-        <h1 class="text-4xl font-extrabold text-white tracking-tight">Artentik<span class="text-indigo-500"> Protocole de chiffrement/déchiffrement</span></h1>
+        <div class="logo-wrapper">
+            <svg width="50" height="50" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 80L50 20L80 80" stroke="#6366f1" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M38 60H62" stroke="#10b981" stroke-width="10" stroke-linecap="round"/>
+            </svg>
+            <span class="text-3xl font-black text-white tracking-tighter">ARTENTIK<span class="text-indigo-500">.</span></span>
+        </div>
+
+        <h1 class="text-4xl font-extrabold text-white tracking-tight">Protocole de chiffrement/déchiffrement</h1>
         <p class="text-slate-400 mt-2 text-lg">Démonstration : Token-Gating réel (Destruction physique des pixels publics)</p>
     </header>
 
@@ -130,6 +146,9 @@
                     <p class="text-sm text-emerald-400 font-bold mb-2 text-center">Clé reconnue. Fichier original HD débloqué par le serveur.</p>
                     <button onclick="telechargerFichier()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-purple-900/50">
                         Télécharger le master original HD
+                    </button>
+                    <button onclick="telechargerCertificat()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-lg transition-all shadow-lg flex items-center justify-center gap-2">
+                        <span>Certificat (PDF)
                     </button>
                 </div>
                 <div id="messagePublic" class="mt-4 text-center border-t border-slate-700 pt-3">
@@ -253,6 +272,84 @@
             
             setVuePublique();
         }
+
+        function telechargerCertificat() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Récupération des données
+        const titre = document.getElementById('titre').value;
+        const proprietaire = document.getElementById('proprietaire').value;
+        const hashImage = imageHashData;
+        const signature = document.getElementById('signatureOut').innerText;
+        const date = new Date().toLocaleDateString('fr-FR');
+
+        // --- Design du PDF ---
+        // Fond sombre (optionnel)
+        doc.setFillColor(15, 23, 42); // Couleur slate-900
+        doc.rect(0, 0, 210, 297, 'F');
+
+        // Cadre doré/indigo
+        doc.setDrawColor(99, 102, 241);
+        doc.setLineWidth(1.5);
+        doc.rect(10, 10, 190, 277);
+
+        // Titre Principal
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(30);
+        doc.text("ARTENTIK", 105, 40, { align: "center" });
+        
+        doc.setFontSize(14);
+        doc.setTextColor(148, 163, 184);
+        doc.text("PROTOCOLE DE CERTIFICATION NUMÉRIQUE", 105, 50, { align: "center" });
+
+        // Corps du texte
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(18);
+        doc.text("CERTIFICAT D'AUTHENTICITÉ", 105, 80, { align: "center" });
+
+        doc.setFontSize(12);
+        doc.setTextColor(148, 163, 184);
+        doc.text("Il est certifié par la présente que l'œuvre intitulée :", 105, 100, { align: "center" });
+
+        doc.setTextColor(16, 185, 129); // Vert émeraude
+        doc.setFontSize(22);
+        doc.text(`"${titre}"`, 105, 115, { align: "center" });
+
+        doc.setFontSize(12);
+        doc.setTextColor(148, 163, 184);
+        doc.text("appartient légitimement à :", 105, 130, { align: "center" });
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(18);
+        doc.text(proprietaire, 105, 140, { align: "center" });
+
+        // Section technique (Preuves)
+        doc.setDrawColor(51, 65, 85);
+        doc.line(30, 160, 180, 160);
+
+        doc.setFontSize(10);
+        doc.setTextColor(99, 102, 241);
+        doc.text("EMPREINTE NUMÉRIQUE (HASH SHA-256) :", 30, 175);
+        doc.setTextColor(203, 213, 225);
+        doc.setFontSize(8);
+        doc.text(hashImage, 30, 182, { maxWidth: 150 });
+
+        doc.setFontSize(10);
+        doc.setTextColor(99, 102, 241);
+        doc.text("SIGNATURE DE L'ARTISTE (RSA SCELLÉ) :", 30, 200);
+        doc.setTextColor(203, 213, 225);
+        doc.setFontSize(7);
+        doc.text(signature, 30, 207, { maxWidth: 150 });
+
+        // Pied de page
+        doc.setFontSize(9);
+        doc.setTextColor(71, 85, 105);
+        doc.text(`Certifié le ${date} par le protocole Artentik`, 105, 270, { align: "center" });
+
+        // Téléchargement
+        doc.save(`Certificat_Artentik_${titre.replace(/\s+/g, '_')}.pdf`);
+    }
 
         function genererCles() {
             document.getElementById('pubKey').innerText = "0x04" + genererChaine(60) + "...";
