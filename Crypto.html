@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artentik – OEuvres numériques certifiées</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .watermark-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 2.5rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            pointer-events: none;
+            white-space: nowrap;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.9);
+            z-index: 10;
+        }
+        .hash-text { word-break: break-all; }
+        .tab-active { border-bottom: 4px solid #6366f1; color: white; }
+        .tab-inactive { border-bottom: 4px solid transparent; color: #94a3b8; }
+        .no-select { user-select: none; -webkit-user-drag: none; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-300 font-sans min-h-screen p-6">
+
+    <header class="max-w-7xl mx-auto mb-8 text-center">
+        <h1 class="text-4xl font-extrabold text-white tracking-tight">Artentik<span class="text-indigo-500">Protocole de chiffrement/déchiffrement</span></h1>
+        <p class="text-slate-400 mt-2 text-lg">Démonstration : Token-Gating réel (Destruction physique des pixels publics)</p>
+    </header>
+
+    <div class="max-w-7xl mx-auto mb-8 flex justify-center border-b border-slate-700">
+        <button onclick="switchTab('artiste')" id="tab-artiste" class="px-8 py-4 text-lg font-bold transition-all tab-active hover:text-white">
+            🎨 Espace Artiste (Création)
+        </button>
+        <button onclick="switchTab('public')" id="tab-public" class="px-8 py-4 text-lg font-bold transition-all tab-inactive hover:text-white">
+            🔍 Espace Public (Vérification)
+        </button>
+    </div>
+
+    <div class="max-w-7xl mx-auto relative">
+
+        <div id="view-artiste" class="grid grid-cols-1 lg:grid-cols-2 gap-8 block">
+            
+            <div class="bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl p-6 flex flex-col">
+                <h2 class="text-2xl font-bold text-white border-b border-slate-700 pb-3 mb-5">1. Intégration de l'Œuvre</h2>
+                
+                <label class="block text-sm font-medium text-slate-400 mb-2">Charger l'image originale :</label>
+                <input type="file" id="imageInput" accept="image/*" class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 mb-4 cursor-pointer">
+                
+                <div class="bg-black rounded-lg h-40 flex items-center justify-center overflow-hidden mb-4 border border-slate-700 relative">
+                    <img id="oeuvreImagePreview" class="max-h-full object-contain hidden no-select" />
+                    <span id="noImageText" class="text-slate-600 font-bold">Aucune image chargée</span>
+                </div>
+
+                <div class="bg-slate-900 p-3 rounded-lg border border-slate-700 mb-6">
+                    <p class="text-xs text-slate-500 uppercase font-bold">Empreinte (Hash) de l'image HD :</p>
+                    <p id="imageHashDisplay" class="font-mono text-xs text-pink-400 hash-text mt-1">En attente d'une image...</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Titre de l'œuvre</label>
+                        <input type="text" id="titre" value="Cyber Punk City #001" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Acheteur (Clé / Nom)</label>
+                        <input type="text" id="proprietaire" value="Alice" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <div class="mt-6 bg-slate-900 p-4 rounded-lg border border-slate-700 flex-grow">
+                    <p class="text-xs text-slate-500 uppercase font-bold mb-2">Empreinte Globale (Image + Données) :</p>
+                    <p id="hashGlobal" class="font-mono text-sm text-indigo-400 hash-text">Calcul en cours...</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl p-6">
+                <h2 class="text-2xl font-bold text-white border-b border-slate-700 pb-3 mb-5">2. Signature Cryptographique</h2>
+                <p class="text-sm text-slate-400 mb-6">L'artiste valide l'empreinte globale de l'œuvre avec sa clé privée.</p>
+
+                <button onclick="genererCles()" class="w-full mb-4 bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-lg transition-colors border border-slate-600">
+                    Générer le trousseau de l'Artiste
+                </button>
+
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-slate-900 p-3 rounded-lg border border-slate-700">
+                        <p class="text-xs text-slate-500 uppercase font-bold">Clé Publique</p>
+                        <p id="pubKey" class="font-mono text-xs text-slate-300 truncate mt-1">---</p>
+                    </div>
+                    <div class="bg-slate-900 p-3 rounded-lg border border-red-900/30">
+                        <p class="text-xs text-red-500/70 uppercase font-bold">Clé Privée</p>
+                        <p id="privKey" class="font-mono text-xs text-red-400/70 truncate mt-1">---</p>
+                    </div>
+                </div>
+
+                <button onclick="signerCertificat()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-emerald-900/50">
+                    Signer l'Empreinte Globale
+                </button>
+
+                <div class="mt-6">
+                    <p class="text-xs text-slate-500 uppercase font-bold mb-1">Preuve de Signature (Immuable) :</p>
+                    <p id="signatureOut" class="font-mono text-xs text-emerald-400 bg-slate-900 p-3 rounded-lg border border-slate-700 hash-text">Aucune œuvre signée.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-public" class="grid grid-cols-1 lg:grid-cols-2 gap-8 hidden">
+            
+            <div class="bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl p-6 flex flex-col">
+                <h2 class="text-2xl font-bold text-white border-b border-slate-700 pb-3 mb-5">Vue de la Galerie (Token-Gating)</h2>
+                
+                <div class="flex space-x-2 mb-4 bg-slate-900 p-1 rounded-lg">
+                    <button onclick="setVuePublique()" id="btnVuePublique" class="flex-1 py-2 text-sm font-bold rounded-md bg-slate-700 text-white transition-all">Visiteur Anonyme</button>
+                    <button onclick="setVueProprietaire()" id="btnVueProprietaire" class="flex-1 py-2 text-sm font-bold rounded-md text-slate-400 hover:text-white transition-all">Se connecter (Propriétaire)</button>
+                </div>
+
+                <div class="relative w-full flex-grow min-h-[250px] bg-black rounded-lg overflow-hidden border border-slate-700 flex items-center justify-center">
+                    <img id="oeuvreImageTokenGated" class="w-full h-full object-cover transition-all duration-700 hidden no-select" oncontextmenu="return false;" />
+                    <span id="noImageTextPublic" class="text-slate-600 font-bold">Aucune œuvre disponible</span>
+                    <div id="filigrane" class="watermark-overlay hidden">APERÇU DÉGRADÉ</div>
+                </div>
+
+                <div id="zoneTelechargement" class="mt-4 hidden">
+                    <p class="text-sm text-emerald-400 font-bold mb-2 text-center">Clé reconnue. Fichier original HD débloqué par le serveur.</p>
+                    <button onclick="telechargerFichier()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-purple-900/50">
+                        ⬇️ Télécharger le master original HD
+                    </button>
+                </div>
+                <div id="messagePublic" class="mt-4 text-center border-t border-slate-700 pt-3">
+                    <p class="text-sm text-slate-500 font-bold text-red-400">Essayez de faire un clic droit pour enregistrer l'image : vous n'aurez que la version pixelisée !</p>
+                    <p class="text-xs text-slate-500 mt-1">Le serveur refuse d'envoyer les octets Haute Définition sans signature valide.</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl p-6">
+                <h2 class="text-2xl font-bold text-white border-b border-slate-700 pb-3 mb-5">Audit d'Authenticité</h2>
+                <p class="text-sm text-slate-400 mb-6">N'importe qui peut vérifier que les données actuelles n'ont pas été falsifiées.</p>
+
+                <button onclick="verifierSignature()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-4 rounded-lg text-lg transition-colors shadow-lg shadow-blue-900/50 mb-8">
+                    Lancer la vérification Blockchain
+                </button>
+
+                <div id="statusBox" class="p-6 rounded-xl border-2 border-dashed border-slate-600 bg-slate-900 text-center flex flex-col items-center justify-center min-h-[150px] transition-all">
+                    <p class="text-slate-500 font-medium">Cliquez pour vérifier l'authenticité de l'œuvre en cours...</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function switchTab(tabId) {
+            if(tabId === 'artiste') {
+                document.getElementById('view-artiste').classList.remove('hidden');
+                document.getElementById('view-public').classList.add('hidden');
+                document.getElementById('tab-artiste').className = "px-8 py-4 text-lg font-bold transition-all tab-active hover:text-white";
+                document.getElementById('tab-public').className = "px-8 py-4 text-lg font-bold transition-all tab-inactive hover:text-white";
+            } else {
+                document.getElementById('view-public').classList.remove('hidden');
+                document.getElementById('view-artiste').classList.add('hidden');
+                document.getElementById('tab-public').className = "px-8 py-4 text-lg font-bold transition-all tab-active hover:text-white";
+                document.getElementById('tab-artiste').className = "px-8 py-4 text-lg font-bold transition-all tab-inactive hover:text-white";
+            }
+        }
+
+        let imageHashData = ""; 
+        let hashGlobalActuel = "";
+        let hashSigne = null; 
+        let clesGenerees = false;
+        
+        // NOS DEUX VERSIONS DE L'IMAGE (Simule le Serveur)
+        let imageHDBase64 = null;     // Le fichier Master
+        let imageDegradeeBase64 = null; // Le fichier Publique
+
+        async function calculerSHA256(buffer) {
+            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Le coeur de la sécurité physique : Dégrader l'image
+        function creerVersionDegradee(originalDataUrl, callback) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                // On réduit drastiquement la taille (10% de l'original) pour détruire la qualité
+                canvas.width = img.width * 0.5;
+                canvas.height = img.height * 0.5;
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                // On exporte en JPEG avec une qualité épouvantable (0.1 = 10% de qualité)
+                callback(canvas.toDataURL('image/jpeg', 0.1));
+            };
+            img.src = originalDataUrl;
+        }
+
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const readerURL = new FileReader();
+            readerURL.onload = (event) => {
+                imageHDBase64 = event.target.result; // On sauvegarde la HD sur notre "serveur"
+                
+                // On génère la version moche pour le public
+                creerVersionDegradee(imageHDBase64, function(degradedDataUrl) {
+                    imageDegradeeBase64 = degradedDataUrl;
+                    
+                    // Mise à jour de l'affichage initial
+                    document.getElementById('oeuvreImagePreview').src = imageHDBase64;
+                    document.getElementById('oeuvreImagePreview').classList.remove('hidden');
+                    document.getElementById('noImageText').classList.add('hidden');
+                    
+                    // L'onglet public affiche d'emblée la version moche
+                    document.getElementById('oeuvreImageTokenGated').src = imageDegradeeBase64;
+                    document.getElementById('oeuvreImageTokenGated').classList.remove('hidden');
+                    document.getElementById('noImageTextPublic').classList.add('hidden');
+                    document.getElementById('filigrane').classList.remove('hidden');
+                });
+            };
+            readerURL.readAsDataURL(file);
+
+            const readerBuffer = new FileReader();
+            readerBuffer.onload = async (event) => {
+                const arrayBuffer = event.target.result;
+                imageHashData = await calculerSHA256(arrayBuffer); // Le hachage se fait TOUJOURS sur l'image HD
+                document.getElementById('imageHashDisplay').innerText = imageHashData;
+                rafraichirHashGlobal();
+            };
+            readerBuffer.readAsArrayBuffer(file);
+        });
+
+        async function rafraichirHashGlobal() {
+            const titre = document.getElementById('titre').value;
+            const prop = document.getElementById('proprietaire').value;
+            
+            const imgPart = imageHashData ? imageHashData : "NO_IMAGE";
+            const donneesACombiner = imgPart + "||" + titre + "||" + prop; 
+            
+            const msgBuffer = new TextEncoder().encode(donneesACombiner);
+            hashGlobalActuel = await calculerSHA256(msgBuffer);
+            
+            document.getElementById('hashGlobal').innerText = hashGlobalActuel;
+            
+            document.getElementById('statusBox').className = "p-6 rounded-xl border-2 border-dashed border-slate-600 bg-slate-900 text-center flex flex-col items-center justify-center min-h-[150px] transition-all";
+            document.getElementById('statusBox').innerHTML = '<p class="text-slate-400 font-medium text-lg">Les données ont changé. Lancer un nouvel audit.</p>';
+            
+            setVuePublique();
+        }
+
+        function genererCles() {
+            document.getElementById('pubKey').innerText = "0x04" + genererChaine(60) + "...";
+            document.getElementById('privKey').innerText = "0x" + genererChaine(64);
+            clesGenerees = true;
+        }
+
+        function signerCertificat() {
+            if(!clesGenerees) return alert("Veuillez d'abord générer les clés de l'artiste !");
+            if(!imageHashData) return alert("Veuillez charger une image pour créer l'œuvre !");
+            
+            hashSigne = hashGlobalActuel; 
+            const fausseSignature = "SIG_" + genererChaine(128) + "==";
+            
+            document.getElementById('signatureOut').innerText = fausseSignature;
+            setTimeout(() => switchTab('public'), 800);
+        }
+
+        function verifierSignature() {
+            const statusBox = document.getElementById('statusBox');
+            
+            if(!hashSigne) {
+                statusBox.className = "p-6 rounded-xl border-2 border-red-500/50 bg-red-900/20 text-center flex flex-col items-center justify-center min-h-[150px] transition-all";
+                statusBox.innerHTML = '<p class="text-red-400 font-bold text-2xl mb-2">ÉCHEC</p><p class="text-red-300">Aucune signature trouvée sur le registre.</p>';
+                return;
+            }
+
+            if(hashGlobalActuel === hashSigne) {
+                statusBox.className = "p-6 rounded-xl border-2 border-emerald-500/50 bg-emerald-900/20 text-center flex flex-col items-center justify-center min-h-[150px] transition-all";
+                statusBox.innerHTML = '<p class="text-emerald-400 font-bold text-2xl mb-2">AUTHENTICITÉ VALIDÉE</p><p class="text-emerald-300">L\'image et les données correspondent exactement à la signature originale de l\'artiste.</p>';
+            } else {
+                statusBox.className = "p-6 rounded-xl border-2 border-red-500/50 bg-red-900/20 text-center flex flex-col items-center justify-center min-h-[150px] transition-all";
+                statusBox.innerHTML = '<p class="text-red-400 font-bold text-2xl mb-2">FALSIFICATION DÉTECTÉE</p><p class="text-red-300">L\'image, le titre ou le propriétaire ne correspondent plus à la signature. C\'est un faux.</p>';
+            }
+        }
+
+        function setVuePublique() {
+            document.getElementById('btnVuePublique').className = "flex-1 py-2 text-sm font-bold rounded-md bg-slate-700 text-white transition-all";
+            document.getElementById('btnVueProprietaire').className = "flex-1 py-2 text-sm font-bold rounded-md text-slate-400 hover:text-white transition-all";
+            
+            // LA SECURITE : On remplace la source de l'image par le fichier détruit !
+            if(imageDegradeeBase64) {
+                document.getElementById('oeuvreImageTokenGated').src = imageDegradeeBase64;
+                document.getElementById('filigrane').style.display = "block";
+                // On met une mise à l'échelle CSS juste pour que l'image pourrie remplisse le cadre
+                document.getElementById('oeuvreImageTokenGated').className = "w-full h-full object-cover scale-110 transition-all duration-700 no-select";
+            }
+            
+            document.getElementById('zoneTelechargement').classList.add('hidden');
+            document.getElementById('messagePublic').classList.remove('hidden');
+        }
+
+        function setVueProprietaire() {
+            if(!imageHDBase64) return alert("Aucune image n'est chargée dans la galerie !");
+            
+            if(!hashSigne || hashGlobalActuel !== hashSigne) {
+                return alert("ACCÈS REFUSÉ : Vous devez signer l'œuvre et valider l'audit d'authenticité pour prouver votre identité de propriétaire.");
+            }
+
+            document.getElementById('messagePublic').innerHTML = '<p class="text-indigo-400 animate-pulse font-bold">Vérification cryptographique de votre identité...</p>';
+            
+            setTimeout(() => {
+                document.getElementById('btnVueProprietaire').className = "flex-1 py-2 text-sm font-bold rounded-md bg-slate-700 text-white transition-all";
+                document.getElementById('btnVuePublique').className = "flex-1 py-2 text-sm font-bold rounded-md text-slate-400 hover:text-white transition-all";
+                
+                // ACCES AUTORISE : On injecte la vraie donnée HD !
+                document.getElementById('oeuvreImageTokenGated').src = imageHDBase64;
+                document.getElementById('oeuvreImageTokenGated').className = "w-full h-full object-contain transition-all duration-700 no-select";
+                document.getElementById('filigrane').style.display = "none";
+                
+                document.getElementById('zoneTelechargement').classList.remove('hidden');
+                document.getElementById('messagePublic').classList.add('hidden');
+                
+                // Reset du texte pour la prochaine fois
+                document.getElementById('messagePublic').innerHTML = `
+                    <p class="text-sm text-slate-500 font-bold text-red-400">Essayez de faire un clic droit pour enregistrer l'image : vous n'aurez que la version pixelisée !</p>
+                    <p class="text-xs text-slate-500 mt-1">Le serveur refuse d'envoyer les octets Haute Définition sans signature valide.</p>
+                `;
+            }, 1000); 
+        }
+
+        function telechargerFichier() {
+            if(!imageHDBase64) return alert("Erreur : Aucun fichier original trouvé en mémoire.");
+            
+            const a = document.createElement('a');
+            a.href = imageHDBase64;
+            a.download = "Oeuvre_Master_HD_Certifiee.png";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function genererChaine(longueur) {
+            const caracteres = 'abcdef0123456789';
+            let resultat = '';
+            for (let i = 0; i < longueur; i++) {
+                resultat += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+            }
+            return resultat;
+        }
+
+        document.getElementById('titre').addEventListener('input', rafraichirHashGlobal);
+        document.getElementById('proprietaire').addEventListener('input', rafraichirHashGlobal);
+        
+        rafraichirHashGlobal();
+    </script>
+</body>
+</html>
